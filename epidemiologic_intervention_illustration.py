@@ -416,40 +416,48 @@ def run_simulation():
             total_cases = population_state_tracker[-1][-1] - immune_from_start
             max_symptomatic = np.max(drawable_pop_state[:, 3])
 
-            print('Epidemy stopped on day %d with %d cases' % (i, total_cases))
-            raise Exception('Epidemy stopped on day %d with %d cases' % (i, total_cases))
+            print('Epidemy stopped on day %d with %d cases, max symptomatic: %d' %
+                  (i, total_cases, max_symptomatic))
+
+            if not save:
+                raise Exception('Frames Epidemy stopped')
+
+            anim.event_source.stop()
 
         return scatter, ax, R_t_plot, naive_plt, incub_plt, pre_symp_plt, sympt_plt, immune_plt
 
-    anim = FuncAnimation(fig, update, 1000, interval=500)
-
-    name_payload = []
-    if quarantine_day > 0:
-        name_payload.append('quarantine_power_%d_starting_on_%d' %
-                            (quarantine_power, quarantine_day))
-        if quarantine_end_day > 0:
-            name_payload.append('ending_on_%d' % quarantine_end_day)
-
-    if self_isolation_day > 0:
-        name_payload.append('self_isolation_on_%d' % self_isolation_day)
-
-    if contact_tracing_day > 0:
-        name_payload.append('contact_tracing_on_%d_with_power%.2f' %
-                            (contact_tracing_day, contact_tracing_power))
-
-    if len(name_payload) == 0:
-        name_payload.append('base_scenario')
-
-    name_payload.append('contagion_parameters_%.2f_%.2f_%.2f' % limit_distances)
-
-    name_payload.append('stopped_on_%d_with_%d_cases' % (simulation_day, total_cases))
-    name_payload.append('%d_max_symptimatic_cases' % max_symptomatic)
-
-    name_struct = '-'.join(name_payload)
-
-    name_struct += '.gif'
+    anim = FuncAnimation(fig, update, max_frames, interval=500)
 
     if save:
+
+        name_payload = []
+
+        if quarantine_day > 0:
+            name_payload.append('quarantine_power_%d_starting_on_%d' %
+                                (quarantine_power, quarantine_day))
+            if quarantine_end_day > 0:
+                name_payload.append('ending_on_%d' % quarantine_end_day)
+
+        if self_isolation_day > 0:
+            name_payload.append('self_isolation_on_%d' % self_isolation_day)
+
+        if contact_tracing_day > 0:
+            name_payload.append('contact_tracing_on_%d_with_power%.2f' %
+                                (contact_tracing_day, contact_tracing_power))
+
+        if len(name_payload) == 0:
+            name_payload.append('base_scenario')
+
+            name_payload.append('contagion_parameters_%.2f_%.2f_%.2f-base_immunity_%.2f' %
+                                (limit_distances, immune_from_start))
+
+            # name_payload.append('stopped_on_%d_with_%d_cases' % (simulation_day, total_cases))
+            # name_payload.append('%d_max_symptimatic_cases' % max_symptomatic)
+
+        name_struct = '-'.join(name_payload)
+
+        name_struct += '.gif'
+
         anim.save(name_struct, dpi=80, writer='imagemagick')
     else:
         plt.show()
@@ -473,14 +481,14 @@ if __name__ == '__main__':
     # matplotlib's scatterplot, at least one individual needs to be immune at the beginning.
     # An alternative interpretation is the fraction of silent, asymptomatic and non-contagious
     # infections
-    fraction_initially_immune = 0.1
+    fraction_initially_immune = 0.7
 
     # For all of the parameters below, the number is the day of the simulation at which the
     # measaure is taken. -1 means the measure is never taken
-    quarantine_day = 20  # day at which a universal quarantine is put in place
-    quarantine_end_day = 40  # day at which the universal quarantine ends
-    self_isolation_day = 30  # day at which everyone with symptoms start to self-quarantine
-    contact_tracing_day = 35  # day at which the contact tracing and contact quarantining starts
+    quarantine_day = -1  # day at which a universal quarantine is put in place
+    quarantine_end_day = -1  # day at which the universal quarantine ends
+    self_isolation_day = -1  # day at which everyone with symptoms start to self-quarantine
+    contact_tracing_day = -1  # day at which the contact tracing and contact quarantining starts
 
     # Parameters below decide how well the measures put in place are implemented.
 
@@ -499,7 +507,11 @@ if __name__ == '__main__':
     contact_tracing_power = 1.
 
     # Flag as to whether save the results or just show in a pyplot window.
-    save = True
+    save = False
+
+    # And because the frame determination is a bit tricky with the current architecture, this needs
+    # to be set manually
+    max_frames = 300
 
     # command that actually runs the simulation
     run_simulation()
@@ -513,3 +525,4 @@ if __name__ == '__main__':
     # self-isolation on 20, power 4: 106 days
     # self-isolation and total tracking on 20, power 4: 77 days
     # self-isolation and partial tracking on 20, power 4: 122 days
+    # immunisation @ 90%
